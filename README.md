@@ -1,3 +1,5 @@
+FORKED FROM https://github.com/strawhatdev01/A12Bypass
+
 🍓BASED in strawhat A12 WIFI Bypass Tool and "itunesstored & bookassetd sbx escape explotation"
 A sophisticated iOS device activation bypass tool specifically designed for A12+ chipset devices, featuring advanced security measures and Telegram integration.
 
