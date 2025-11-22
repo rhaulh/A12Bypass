@@ -1,11 +1,12 @@
+import os
 from PyQt5.QtWidgets import QDialog
 from PyQt5 import uic
 
 class CustomMessageBox(QDialog):
     def __init__(self, title, message, serial_number, parent=None):
         super().__init__(parent)
-
-        uic.loadUi("gui/custom_message_box.ui", self)
+        ui_path = os.path.join(os.path.dirname(__file__), "CustomMessageBoxUI.ui")
+        uic.loadUi(ui_path, self)
 
         # Set data
         self.labelTitle.setText(title)
@@ -19,8 +20,8 @@ class CustomMessageBox(QDialog):
 class ActivationResultDialog(QDialog):
     def __init__(self, title, message, is_success=True, parent=None):
         super().__init__(parent)
-
-        uic.loadUi("gui/activation_result_dialog.ui", self)
+        ui_path = os.path.join(os.path.dirname(__file__), "ActivationResultDialogUI.ui")
+        uic.loadUi(ui_path, self)
 
         # Set fields
         self.labelTitle.setText(title)

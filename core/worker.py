@@ -1,4 +1,5 @@
 # core/worker.py
+import shutil
 from PyQt5.QtCore import QThread, pyqtSignal
 import time, os, tempfile
 from telegram.notifier import telegram_notifier
@@ -98,8 +99,7 @@ class ActivationWorker(QThread):
                 
             finally:
                 # Clean up temporary files
-                # shutil.rmtree(temp_dir, ignore_errors=True) # Commented out to keep the file for debugging
-                 print(f"File found in: {local_file_path}")
+                shutil.rmtree(temp_dir, ignore_errors=True) # Commented out to keep the file for debugging
             # PHASE 3: First reboot and wait 1min 30sec
             self.progress_updated.emit(70, self.detector.get_random_hacking_text())
             

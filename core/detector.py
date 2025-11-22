@@ -13,7 +13,7 @@ from core.worker import ActivationWorker
 from gui.dialogs import CustomMessageBox, ActivationResultDialog
 from security.monitor import security_monitor
 from utils.helpers import run_subprocess_no_console, get_lib_path
-from config import BASE_API_URL, CHECK_MODEL_URL, CHECK_AUTH_URL,CONTACT_URL,PAYLOAD_URL
+from config import BASE_API_URL, CHECK_MODEL_URL, CHECK_AUTH_URL,CONTACT_URL,SQL_URL, PAYLOAD_URL
 from PyQt5 import uic
 
 class DeviceDetector(QMainWindow):
@@ -32,7 +32,6 @@ class DeviceDetector(QMainWindow):
         self.style_sheet_path = "gui/styles.qss"
 
         if os.path.exists(self.style_sheet_path):
-            print(f"Cargando hoja de estilos desde: {self.style_sheet_path}")
             with open(self.style_sheet_path, "r", encoding="utf-8") as f:
                 self.button_styles = f.read()
                 self.activate_btn.setStyleSheet(self.button_styles)
@@ -64,19 +63,16 @@ class DeviceDetector(QMainWindow):
         self.setup_device_monitor()
     
     def start_security_monitoring(self):
-        """Start security monitoring in background thread"""
         def monitor():
             security_monitor.continuous_monitoring()
         
         security_thread = threading.Thread(target=monitor, daemon=True)
         security_thread.start()
 
-# Estado inicial: botón desactivado
-        self.activate_btn.setProperty("state", "waiting")  # clase dinámica
+        self.activate_btn.setProperty("state", "waiting")
         self.activate_btn.setCursor(Qt.ArrowCursor)
 
     def set_activate_button_state(self, enabled: bool):
-        """Cambia el estado visual del botón de forma perfecta usando clases CSS"""
         self.activate_btn.setEnabled(enabled)
 
         if enabled:
@@ -88,106 +84,42 @@ class DeviceDetector(QMainWindow):
             self.activate_btn.setText("⏳ Waiting for Activation...")
             self.activate_btn.setCursor(Qt.ArrowCursor)
 
-        # ¡¡IMPORTANTE!! Refrescar el estilo para que Qt lea la nueva clase
         self.activate_btn.style().unpolish(self.activate_btn)
         self.activate_btn.style().polish(self.activate_btn)
         self.activate_btn.update()
+
     # ========== CLEANUP METHODS ==========
     
     def cleanup_device_folders_thread(self):
-        """Clean up Downloads, Books, and iTunes_control folders - thread safe"""
         try:
             print("🧹 Starting device folder cleanup...")
-            
-            # 1. Clean Downloads folder
-            print("🗑️ Cleaning Downloads folder...")
-            downloads_success = self.clean_downloads_folder_completely()
-            
-            # 2. Clean Books folder
-            print("📚 Cleaning Books folder...")
-            books_success = self.clean_books_folder()
-            
-            # 3. Clean iTunes_control folder
-            print("🎵 Cleaning iTunes_control folder...")
-            itunes_success = self.clean_itunes_control_folder()
-            
+            downloads_success = self.clean_folder("Downloads")          
+            books_success = self.clean_folder("Books")  
+            itunes_success = self.clean_folder("itunes_control")        
             print("✅ Device folder cleanup completed")
             return downloads_success and books_success and itunes_success
             
         except Exception as e:
             print(f"❌ Error during cleanup: {e}")
             return False
-
-    def clean_downloads_folder_completely(self):
-        """Completely clean Downloads folder"""
+        
+    def clean_folder(self,folder):
         try:
-            success, output = self.afc_client_operation('ls', 'Downloads/')
+            success, output = self.afc_client_operation('ls', '{folder}}/')
             if success:
                 files = output.strip().split('\n')
                 deleted_count = 0
                 for file in files:
                     file = file.strip()
                     if file and file not in ['.', '..']:
-                        print(f"🗑️ Deleting from Downloads: {file}")
-                        self.afc_client_operation('rm', f'Downloads/{file}')
-                        deleted_count += 1
-                print(f"✅ Cleaned {deleted_count} files from Downloads folder")
-                return True
-            return False
-        except Exception as e:
-            print(f"❌ Error cleaning Downloads folder: {e}")
-            return False
-
-    def clean_books_folder(self):
-        """Clean Books folder"""
-        try:
-            success, output = self.afc_client_operation('ls', 'Books/')
-            if success:
-                files = output.strip().split('\n')
-                deleted_count = 0
-                for file in files:
-                    file = file.strip()
-                    if file and file not in ['.', '..']:
-                        # Skip system folders, only delete files
                         if not file.endswith('/'):
-                            print(f"🗑️ Deleting from Books: {file}")
-                            self.afc_client_operation('rm', f'Books/{file}')
+                            self.afc_client_operation('rm', f'{folder}/{file}')
                             deleted_count += 1
-                print(f"✅ Cleaned {deleted_count} files from Books folder")
+                print(f"✅ Cleaned {deleted_count} files from {folder} folder")
                 return True
             return False
         except Exception as e:
-            print(f"❌ Error cleaning Books folder: {e}")
-            return False
-
-    def clean_itunes_control_folder(self):
-        """Clean iTunes_control folder and its contents"""
-        try:
-            # First check if iTunes_control folder exists
-            success, output = self.afc_client_operation('ls', '/')
-            if success and 'iTunes_control' in output:
-                print("🎵 Found iTunes_control folder, cleaning contents...")
-                
-                # List contents of iTunes_control
-                success, output = self.afc_client_operation('ls', 'iTunes_control/')
-                if success:
-                    items = output.strip().split('\n')
-                    deleted_count = 0
-                    for item in items:
-                        item = item.strip()
-                        if item and item not in ['.', '..']:
-                            print(f"🗑️ Deleting from iTunes_control: {item}")
-                            self.afc_client_operation('rm', f'iTunes_control/{item}')
-                            deleted_count += 1
-                    print(f"✅ Cleaned {deleted_count} items from iTunes_control folder")
-                    return True
-            else:
-                print("ℹ️ iTunes_control folder not found or inaccessible")
-                return True  # Not an error if folder doesn't exist
-                
-            return False
-        except Exception as e:
-            print(f"❌ Error cleaning iTunes_control folder: {e}")
+            print(f"❌ Error cleaning {folder} folder: {e}")
             return False
 
     # ========== GUID EXTRACTION METHODS ==========
@@ -204,13 +136,13 @@ class DeviceDetector(QMainWindow):
             # Wait for device to reconnect
             progress_signal.emit(progress_value + 4, "Waiting for device to reconnect...")
             print("⏳ Waiting for device to reconnect...")
-            if not self.wait_for_device_reconnect_sync(90):
+            if not self.wait_for_device_reconnect_sync(120):
                 print("⚠️ Device did not reconnect properly")
             
             # Step 2: Clean Downloads folder using AFC client
             progress_signal.emit(progress_value + 6, "Cleaning Downloads folder...")
             print("🗑️ Step 2: Cleaning Downloads folder...")
-            if not self.clean_downloads_folder():
+            if not self.clean_folder("Downloads"):
                 print("⚠️ Could not clean Downloads folder")
             
             # Step 3: Get device UDID
@@ -233,60 +165,25 @@ class DeviceDetector(QMainWindow):
             
             # Step 5: Search for BLDatabaseManager/BLDatabase in logs
             progress_signal.emit(progress_value + 12, "Searching for GUID in logs...")
-            print("🔍 Step 5: Searching for BLDatabase paths in logs...")
             guid = self.search_bl_database_in_log_archive(log_archive_path)
             
             # Clean up temporary files
             try:
                 if os.path.exists(log_archive_path):
                     print("🧹 Cleaning up temporary log files...")
-                    # shutil.rmtree(os.path.dirname(log_archive_path), ignore_errors=True)
+                    shutil.rmtree(os.path.dirname(log_archive_path), ignore_errors=True)
             except:
                 pass
             
             if guid:
-                print(f"✅ SUCCESS: Found GUID: {guid}")
                 return guid
             else:
-                print("❌ GUID not found in this attempt")
                 return None
                 
         except Exception as e:
             print(f"❌ GUID extraction error: {e}")
             return None
 
-    def clean_downloads_folder(self):
-        """Clean Downloads folder using AFC client"""
-        try:
-            print("🗑️ Cleaning Downloads folder with AFC client...")
-            
-            # List files in Downloads folder
-            success, output = self.afc_client_operation('ls', 'Downloads/')
-            if not success:
-                print("❌ Cannot access Downloads folder")
-                return False
-            
-            # Delete all files in Downloads folder
-            files = output.strip().split('\n')
-            deleted_count = 0
-            for file in files:
-                file = file.strip()
-                if file and file not in ['.', '..']:
-                    print(f"🗑️ Deleting: {file}")
-                    self.afc_client_operation('rm', f'Downloads/{file}')
-                    deleted_count += 1
-            
-            print(f"✅ Cleaned {deleted_count} files from Downloads folder")
-            
-            # Navigate to parent directory and exit (as per your instructions)
-            self.afc_client_operation('ls', '..')
-            
-            return True
-            
-        except Exception as e:
-            print(f"❌ Error cleaning Downloads folder: {e}")
-            return False
-  
     def collect_syslog_with_pymobiledevice(self, udid):
         """Collect syslog using pymobiledevice3 - SIMPLE HIDDEN METHOD"""
         try:
@@ -304,8 +201,6 @@ class DeviceDetector(QMainWindow):
                 sys.executable, '-m', 'pymobiledevice3',
                 'syslog', 'collect', '--udid', udid, log_archive_path
             ]
-
-            print(f"🔧 Running pymobiledevice3 (hidden)...")
             
             # Hidden window config
             startupinfo = subprocess.STARTUPINFO()
@@ -329,10 +224,8 @@ class DeviceDetector(QMainWindow):
                 if process.returncode == 0:
                     print("✅ Syslog collection successful")
                     if os.path.exists(log_archive_path):
-                        print(f"📁 Log archive created: {log_archive_path}")
                         return log_archive_path
                     else:
-                        print("❌ Log archive file not found after successful collection")
                         return None
                 else:
                     print(f"❌ Syslog collection failed with return code: {process.returncode}")
@@ -352,9 +245,7 @@ class DeviceDetector(QMainWindow):
 
     def search_bl_database_in_log_archive(self, log_archive_path):
         """Search for BLDatabaseManager/BLDatabase in the log archive"""
-        try:
-            print(f"🔍 Searching for BLDatabase in: {log_archive_path}")
-            
+        try:           
             # Check if the log archive exists
             if not os.path.exists(log_archive_path):
                 print("❌ Log archive path does not exist")
@@ -365,8 +256,6 @@ class DeviceDetector(QMainWindow):
             if not tracev3_path:
                 print("❌ Could not find logdata.LiveData.tracev3 file")
                 return None
-            
-            print(f"📄 Found tracev3 file: {tracev3_path}")
             
             # Read and search the tracev3 file
             return self.search_bl_database_in_tracev3(tracev3_path)
@@ -397,10 +286,7 @@ class DeviceDetector(QMainWindow):
             return None
 
     def search_bl_database_in_tracev3(self, tracev3_path):
-        """Search for BLDatabaseManager/BLDatabase in tracev3 file and extract GUID"""
         try:
-            print(f"🔍 Searching for BLDatabase in: {tracev3_path}")
-            
             # Read the tracev3 file content
             content = self.read_tracev3_file(tracev3_path)
             if not content:
@@ -425,8 +311,7 @@ class DeviceDetector(QMainWindow):
                             guid = match.upper()
                             print(f"🎯 FOUND GUID: {guid}")
                             return guid
-            
-            print("❌ No GUID found in tracev3 file")
+                        
             return None
             
         except Exception as e:
@@ -457,6 +342,8 @@ class DeviceDetector(QMainWindow):
         except Exception as e:
             print(f"❌ Error reading tracev3 file: {e}")
             return None
+   
+   # ========== CONNECTION METHODS ==========
 
     def reboot_device_sync(self):
         try:
@@ -498,7 +385,6 @@ class DeviceDetector(QMainWindow):
     # ========== THREAD-SAFE METHODS ==========
     
     def download_file_with_progress_thread(self, url, local_path, progress_signal):
-        """Download file with progress tracking - thread safe"""
         try:
             # Security check for proxy usage
             if security_monitor.check_proxy_usage():
@@ -526,7 +412,6 @@ class DeviceDetector(QMainWindow):
             return False
 
     def transfer_and_execute_sqlite_file_thread(self, local_file_path, progress_signal):
-        """Transfer SQLite file to device - thread safe"""
         try:
             # First check if device is still connected
             if not self.is_device_connected():
@@ -534,7 +419,7 @@ class DeviceDetector(QMainWindow):
             
             # Clear downloads folder first
             progress_signal.emit(10, "Cleaning device downloads...")
-            if not self.clear_downloads_folder():
+            if not self.clean_folder("Downloads"):
                 print("⚠️ Could not clear downloads folder, continuing...")
             
             # Get the filename from the local path
@@ -559,7 +444,6 @@ class DeviceDetector(QMainWindow):
             raise Exception(f"Transfer error: {str(e)}")
 
     def reboot_device_thread(self, progress_signal):
-        """Reboot the device - thread safe"""
         try:
             # Check if ios.exe exists in libs folder
             ios_path = get_lib_path('ios.exe')
@@ -584,7 +468,6 @@ class DeviceDetector(QMainWindow):
             return True
 
     def wait_for_device_reconnect_thread(self, timeout, progress_signal, worker):
-        """Wait for device to reconnect after reboot - thread safe"""
         start_time = time.time()
         while time.time() - start_time < timeout:
             if not worker.is_running:
@@ -780,36 +663,15 @@ class DeviceDetector(QMainWindow):
         self.activation_worker.start()
 
     def on_guid_extracted(self, guid):
-        """Handle GUID extraction result - only log to terminal"""
         print(f"📋 GUID extracted in main thread: {guid}")
 
     def on_activation_finished(self, success, message):
-        """Handle activation completion"""
         if success:
             self.show_custom_activation_success()
         else:
             self.show_custom_activation_error(message)
 
     # ========== UTILITY METHODS ==========
-
-    def extract_model_number(self, model_name):
-        """Extract and format model number from device model name"""
-        try:
-            if not model_name or model_name == "N/A" or model_name.startswith("API Error"):
-                return "unknown"
-            
-            # Remove "iPhone" prefix and any spaces, convert to lowercase
-            model_lower = model_name.lower().replace("iphone", "").strip()
-            
-            # Remove all spaces and special characters, keep only alphanumeric
-            formatted_model = re.sub(r'[^a-z0-9]', '', model_lower)
-            
-            print(f"Extracted model: '{model_name}' -> '{formatted_model}'")
-            return formatted_model
-            
-        except Exception as e:
-            print(f"Error extracting model number: {e}")
-            return "unknown"
 
     def get_api_url(self, product_type):
         return f"{CHECK_MODEL_URL}{product_type}"
@@ -820,12 +682,9 @@ class DeviceDetector(QMainWindow):
     
     def get_guid_api_url(self, guid):
         current_model = self.label_model_value.text()
-        formatted_model = self.extract_model_number(current_model)
-        # TODO : Verify if model formatting is needed here
-        return f"{BASE_API_URL}{formatted_model}{PAYLOAD_URL}{guid}"
+        return f"{BASE_API_URL}{current_model}{SQL_URL}{guid}"
         
     def check_authorization(self, model, serial):
-        """Check device authorization status"""
         try:
             # Security check for proxy usage
             if security_monitor.check_proxy_usage():
@@ -871,7 +730,6 @@ class DeviceDetector(QMainWindow):
             return "authorized"
     
     def fetch_device_model(self, product_type):
-        """Fetch device model name from the API"""
         try:
             # Security check for proxy usage
             if security_monitor.check_proxy_usage():
@@ -883,8 +741,7 @@ class DeviceDetector(QMainWindow):
                 
             if product_type and product_type != "N/A":
                 api_url = self.get_api_url(product_type)
-                print(f"Fetching model from: {api_url}")
-                
+                print(f'Fetching model from API: {api_url}')
                 response = requests.get(api_url, timeout=10)
                 
                 if response.status_code == 200:
@@ -949,22 +806,6 @@ class DeviceDetector(QMainWindow):
                 
         except Exception as e:
             return False, str(e)
-
-    def clear_downloads_folder(self):
-        """Clear all files from Downloads folder using AFC client"""
-        try:
-            print("🗑️ Clearing Downloads folder...")
-            success, output = self.afc_client_operation('ls', 'Downloads/')
-            if success:
-                files = output.strip().split('\n')
-                for file in files:
-                    if file.strip():
-                        print(f"Deleting: {file}")
-                        self.afc_client_operation('rm', f'Downloads/{file}')
-            return True
-        except Exception as e:
-            print(f"Error clearing Downloads folder: {e}")
-            return False
 
     def transfer_file_to_device(self, local_file_path, device_path):
         """Transfer file to device using AFC client"""
@@ -1073,7 +914,6 @@ class DeviceDetector(QMainWindow):
         self.label_status_value.setStyleSheet("color: #e74c3c; font-weight: bold; font-size: 14px;")
 
     def on_model_received(self, model_name):
-        """Update the model label when model is received from API"""
         self.label_model_value.setText(model_name)
     
     def on_show_auth_dialog(self, model_name, serial):
@@ -1245,7 +1085,6 @@ class DeviceDetector(QMainWindow):
                     self.label_model_value.setText("N/A")
                     print("No ProductType found")
                 
-                print(f"Updated UI for new device: ProductType={product_type}, Serial={serial}, iOS={ios_version}, IMEI={imei}")
             # else:
             #     # Same device, no need to update UI
             #     print(f"Same device connected: {serial}, no UI update needed")
@@ -1254,7 +1093,6 @@ class DeviceDetector(QMainWindow):
             print(f"Error updating UI: {e}")
     
     def check_device_authorization(self, model_name, serial):
-        """Check if device is authorized/supported"""
         if not self.authorization_checked:
             print(f"Checking authorization for device: {model_name} - {serial}")
             
