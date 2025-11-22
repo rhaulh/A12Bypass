@@ -22,7 +22,7 @@ A sophisticated iOS device activation bypass tool specifically designed for A12+
 
   📋 Requirements
 
-- Python Dependencies
+- Python 3.11 Dependencies
 - bash
 - pip install PyQt5 pymobiledevice3 requests
 - Windows OS
