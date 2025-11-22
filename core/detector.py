@@ -42,7 +42,7 @@ class DeviceDetector(QMainWindow):
         self.device_info = {}
         self.current_serial = None
         self.current_product_type = None
-        self.cached_models = {"iPhone16,2":"iPhone 15 Pro Max","iPhone17,4":"iPhone 16 Plus","iPhone13,4":"iPhone 12 Pro Max","iPhone13,2":"iPhone 12"}  # Example cached models
+        self.cached_models = {"iPhone16,2":"iPhone 15 Pro Max"} 
         self.authorization_checked = False
         self.device_authorized = False
         self.activation_in_progress = False
@@ -890,7 +890,6 @@ class DeviceDetector(QMainWindow):
                 
             # Check cache first
             if product_type in self.cached_models:
-                # print(f"Using cached model for {product_type}: {self.cached_models[product_type]}")
                 return self.cached_models[product_type]
                 
             if product_type and product_type != "N/A":
@@ -898,8 +897,6 @@ class DeviceDetector(QMainWindow):
                 print(f"Fetching model from: {api_url}")
                 
                 response = requests.get(api_url, timeout=10)
-                print(f"API Response status: {response.status_code}")
-                print(f"API Response text: {response.text}")
                 
                 if response.status_code == 200:
                     model_name = response.text.strip()
@@ -909,6 +906,14 @@ class DeviceDetector(QMainWindow):
                         return model_name
                     else:
                         return "Unknown Model"
+                if response.status_code == 404:  
+                    model_name = response.text.strip()
+                    if model_name and model_name != "Unknown":
+                        # Cache the result
+                        self.cached_models[product_type] = model_name
+                        return model_name
+                    else:
+                        return "Unknown Model"             
                 else:
                     return f"API Error: {response.status_code}"
             return "N/A"
