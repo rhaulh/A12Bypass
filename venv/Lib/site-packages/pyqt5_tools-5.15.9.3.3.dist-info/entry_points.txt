@@ -1,0 +1,2 @@
+[console_scripts]
+pyqt5-tools = pyqt5_tools.entrypoints:main

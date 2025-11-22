@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>CustomMessageBoxUI</class>
+ <widget class="QDialog" name="CustomMessageBoxUI">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>496</width>
+    <height>310</height>
+   </rect>
+  </property>
+  <property name="contextMenuPolicy">
+   <enum>Qt::DefaultContextMenu</enum>
+  </property>
+  <property name="windowTitle">
+   <string>Custom Message Box</string>
+  </property>
+  <property name="layoutDirection">
+   <enum>Qt::LeftToRight</enum>
+  </property>
+  <property name="modal">
+   <bool>false</bool>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QLabel" name="labelTitle">
+     <property name="styleSheet">
+      <string notr="true">
+font-size: 20px;
+font-weight: bold;
+color: #27ae60;
+margin-bottom: 15px;
+border-radius: 10px;</string>
+     </property>
+     <property name="text">
+      <string>Title</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="labelMessage">
+     <property name="styleSheet">
+      <string notr="true">
+font-size: 14px;
+color: #2c3e50;
+margin-bottom: 20px;
+padding: 10px;
+      </string>
+     </property>
+     <property name="text">
+      <string>Message</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="labelSerial">
+     <property name="styleSheet">
+      <string notr="true">
+font-size: 16px;
+font-weight: bold;
+color: #e74c3c;
+background-color: #fdf2f2;
+padding: 10px;
+border: 2px solid #e74c3c;
+border-radius: 5px;
+margin-bottom: 20px;
+      </string>
+     </property>
+     <property name="text">
+      <string>Serial: XXXXX</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="labelInfo">
+     <property name="styleSheet">
+      <string notr="true">
+font-size: 12px;
+color: #7f8c8d;
+font-style: italic;
+margin-bottom: 20px;
+      </string>
+     </property>
+     <property name="text">
+      <string>Click 'Proceed to Order' to continue with the activation process</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QPushButton" name="btnCancel">
+       <property name="styleSheet">
+        <string notr="true">
+QPushButton {
+ background-color: #95a5a6;
+ color: white;
+ border: none;
+ border-radius: 5px;
+ padding: 10px 20px;
+ font-weight: bold;
+ font-size: 14px;
+}
+QPushButton:hover {
+ background-color: #7f8c8d;
+}
+        </string>
+       </property>
+       <property name="text">
+        <string>Cancel</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnProceed">
+       <property name="styleSheet">
+        <string notr="true">
+QPushButton {
+ background-color: #27ae60;
+ color: white;
+ border: none;
+ border-radius: 5px;
+ padding: 10px 20px;
+ font-weight: bold;
+ font-size: 14px;
+}
+QPushButton:hover {
+ background-color: #219653;
+}
+        </string>
+       </property>
+       <property name="text">
+        <string>Proceed to Order</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

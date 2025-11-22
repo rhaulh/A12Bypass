@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ActivationResultDialogUI</class>
+ <widget class="QDialog" name="ActivationResultDialogUI">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>500</width>
+    <height>350</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Activation Result</string>
+  </property>
+
+  <layout class="QVBoxLayout" name="verticalLayout">
+
+   <!-- Title -->
+   <item>
+    <widget class="QLabel" name="labelTitle">
+     <property name="text">
+      <string>Activation Result</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">
+font-size: 24px;
+font-weight: bold;
+color: #27ae60;
+margin-bottom: 20px;
+      </string>
+     </property>
+    </widget>
+   </item>
+
+   <!-- Message -->
+   <item>
+    <widget class="QLabel" name="labelMessage">
+     <property name="text">
+      <string>Your device has been activated successfully.</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">
+font-size: 16px;
+color: #2c3e50;
+margin-bottom: 30px;
+padding: 15px;
+background-color: #f8f9fa;
+border-radius: 8px;
+border: 1px solid #ddd;
+      </string>
+     </property>
+    </widget>
+   </item>
+
+   <!-- Info only on failure (hidden by default) -->
+   <item>
+    <widget class="QLabel" name="labelInfo">
+     <property name="text">
+      <string>This is a normal process. Try again several times for your device to activate.</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="visible">
+      <bool>false</bool>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">
+font-size: 14px;
+color: #7f8c8d;
+font-style: italic;
+margin-bottom: 20px;
+padding: 10px;
+background-color: #fff3cd;
+border: 1px solid #ffeaa7;
+border-radius: 5px;
+      </string>
+     </property>
+    </widget>
+   </item>
+
+   <!-- OK button -->
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <spacer name="hSpacerLeft">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size><width>40</width><height>20</height></size>
+       </property>
+      </spacer>
+     </item>
+
+     <item>
+      <widget class="QPushButton" name="btnOk">
+       <property name="text">
+        <string>OK</string>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">
+QPushButton {
+ background-color: #3498db;
+ color: white;
+ border: none;
+ border-radius: 5px;
+ padding: 12px 30px;
+ font-weight: bold;
+ font-size: 16px;
+ min-width: 120px;
+}
+QPushButton:hover {
+ background-color: #2980b9;
+}
+        </string>
+       </property>
+      </widget>
+     </item>
+
+     <item>
+      <spacer name="hSpacerRight">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size><width>40</width><height>20</height></size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+
+  </layout>
+ </widget>
+
+ <resources/>
+ <connections/>
+</ui>
