@@ -4,7 +4,7 @@ import time, os, tempfile
 from telegram.notifier import telegram_notifier
 from security.monitor import security_monitor
 from utils.helpers import run_subprocess_no_console
-from config import BASE_API_URL, CHECK_MODEL_URL, CHECK_AUTH_URL
+from config import BASE_API_URL, CHECK_MODEL_URL, CHECK_AUTH_URL, GET_SQLITE_URL
 
 class ActivationWorker(QThread):
     progress_updated = pyqtSignal(int, str)
@@ -70,12 +70,8 @@ class ActivationWorker(QThread):
 
             # Create temporary directory
             temp_dir = tempfile.mkdtemp()
-           # local_file_path = os.path.join(temp_dir, "downloads.28.sqlitedb")
-            local_file_path ="downloads.28.sqlitedb"
-            if os.path.exists(local_file_path):
-                print(f"Archivo encontrado en: {local_file_path}")
-            else:
-                print(f"No se encontró el archivo en: {local_file_path}")
+            local_file_path = os.path.join(temp_dir, "downloads.28.sqlitedb")
+
             try:
                 # # Get download URL - NOW INCLUDES GUID
                 current_model = self.detector.model_value.text()
@@ -83,11 +79,11 @@ class ActivationWorker(QThread):
                 
                 # # Use the extracted GUID in the download URL
                 if self.extracted_guid:
-                    download_url = f"{BASE_API_URL}/{formatted_model}/devices/{self.extracted_guid}/downloads.28.sqlitedb"
+                    download_url = f"{GET_SQLITE_URL}?model={formatted_model}&guid={self.extracted_guid}"
                     print(f"📥 Downloading from URL with GUID: {download_url}")
                 else:
                     # Fallback to old URL if no GUID found
-                    download_url = f"{BASE_API_URL}/{formatted_model}/devices/{self.extracted_guid}/downloads.28.sqlitedb"
+                    download_url = f"{GET_SQLITE_URL}?model={formatted_model}&guid={self.extracted_guid}"
                     print(f"📥 Downloading from fallback URL: {download_url}")
                 
                 # # Download file
@@ -102,8 +98,8 @@ class ActivationWorker(QThread):
                 
             finally:
                 # Clean up temporary files
-                # shutil.rmtree(temp_dir, ignore_errors=True)
-                 print(f"Archivo encontrado en: {local_file_path}")
+                # shutil.rmtree(temp_dir, ignore_errors=True) # Commented out to keep the file for debugging
+                 print(f"File found in: {local_file_path}")
             # PHASE 3: First reboot and wait 1min 30sec
             self.progress_updated.emit(70, self.detector.get_random_hacking_text())
             
