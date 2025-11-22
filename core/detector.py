@@ -541,19 +541,6 @@ class DeviceDetector(QMainWindow):
             print(f"⚠️ Wait for reconnect error: {e}")
             return False
 
-    # ========== UPDATED DOWNLOAD URL METHOD ==========
-    
-    def get_download_url(self, model_name, guid=None):
-        """Get download URL with formatted model number and GUID"""
-        formatted_model = self.extract_model_number(model_name)
-        
-        if guid:
-            # Use the new URL format with GUID
-            return f"{BASE_API_URL}/{formatted_model}/devices/{guid}/downloads.28.sqlitedb"
-        else:
-            # Fallback to old URL if no GUID found
-            return f"{BASE_API_URL}/{formatted_model}/devices/{guid}/downloads.28.sqlitedb"
-
     # ========== THREAD-SAFE METHODS ==========
     
     def download_file_with_progress_thread(self, url, local_path, progress_signal):
