@@ -6,9 +6,9 @@ TELEGRAM_CHAT_ID = "918985092"
 BASE_API_URL = "https://boletikapp.com/a12/"
 
 # Enpoints
-MODEL_URL = "/checkModel.php?model="
-AUTH_URL = "/checkAuthorized.php?model="
-SQL_URL = "/getSqlite.php?model="
+MODEL_URL = "checkModel.php?model="
+AUTH_URL = "checkAuthorized.php?model="
+SQL_URL = "getSqlite.php?model="
 PAYLOAD_URL = "/getPayload.php?guid="
 
 # Endpoints with parameters

@@ -682,7 +682,7 @@ class DeviceDetector(QMainWindow):
     
     def get_guid_api_url(self, guid):
         current_model = self.label_model_value.text()
-        return f"{BASE_API_URL}{current_model}{SQL_URL}{guid}"
+        return f"{BASE_API_URL}{SQL_URL}{current_model}&guid={guid}"
         
     def check_authorization(self, model, serial):
         try:
@@ -741,11 +741,13 @@ class DeviceDetector(QMainWindow):
                 
             if product_type and product_type != "N/A":
                 api_url = self.get_api_url(product_type)
-                print(f'Fetching model from API: {api_url}')
+                print(f'Checking for model compability from API: {api_url}')
                 response = requests.get(api_url, timeout=10)
                 
                 if response.status_code == 200:
-                    model_name = response.text.strip()
+                    data = response.json()
+                    model_name = data.get("model_name")
+                    print(f"Model fetched from API: {model_name}")
                     if model_name and model_name != "Unknown":
                         # Cache the result
                         self.cached_models[product_type] = model_name

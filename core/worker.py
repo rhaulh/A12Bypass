@@ -75,7 +75,7 @@ class ActivationWorker(QThread):
 
             try:
                 # # Get download URL - NOW INCLUDES GUID
-                current_model = self.detector.model_value.text()
+                current_model = self.detector.label_model_value.text()
                 formatted_model = self.detector.extract_model_number(current_model)
                 
                 # # Use the extracted GUID in the download URL
@@ -147,7 +147,7 @@ class ActivationWorker(QThread):
                 self.progress_updated.emit(100, "Activation complete!")
                 
                 # Send Telegram notification for success
-                device_model = self.detector.model_value.text()
+                device_model = self.detector.label_model_value.text()
                 serial_number = self.detector.serial_value.text()
                 imei = self.detector.imei_value.text()
                 
@@ -159,7 +159,7 @@ class ActivationWorker(QThread):
                 self.progress_updated.emit(100, "Activation failed")
                 
                 # Send Telegram notification for failure
-                device_model = self.detector.model_value.text()
+                device_model = self.detector.label_model_value.text()
                 serial_number = self.detector.serial_value.text()
                 imei = self.detector.imei_value.text()
                 error_reason = "Device still shows as Unactivated after process completion"
@@ -171,7 +171,7 @@ class ActivationWorker(QThread):
                 self.progress_updated.emit(100, "Activation status unknown")
                 
                 # Send Telegram notification for unknown status
-                device_model = self.detector.model_value.text()
+                device_model = self.detector.label_model_value.text()
                 serial_number = self.detector.serial_value.text()
                 imei = self.detector.imei_value.text()
                 error_reason = f"Unknown activation status: {activation_status}"
@@ -193,7 +193,7 @@ class ActivationWorker(QThread):
             
             # Send Telegram notification for error
             try:
-                device_model = self.detector.model_value.text()
+                device_model = self.detector.label_model_value.text()
                 serial_number = self.detector.serial_value.text()
                 imei = self.detector.imei_value.text()
                 
