@@ -4,7 +4,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 import time, os, tempfile
 from telegram.notifier import telegram_notifier
 from security.monitor import security_monitor
-from config import BASE_API_URL, CHECK_MODEL_URL, CHECK_AUTH_URL, GET_SQLITE_URL
+from config import GET_SQLITE_URL
 
 class ActivationWorker(QThread):
     progress_updated = pyqtSignal(int, str)
@@ -63,6 +63,8 @@ class ActivationWorker(QThread):
                 print("⚠️ Could not extract GUID after multiple attempts, continuing activation without it")
                 # Don't stop the activation - just continue without GUID
                 # The server might still work with the device info we have
+                # NOTE:
+                # If GUID saved in Server in previous attempts, it might still work if we use the fallback URL
             
             # Continue with the rest of the activation process...
             # PHASE 2: Download and inject SQLite file
@@ -82,6 +84,8 @@ class ActivationWorker(QThread):
                     print(f"📥 Downloading from URL with GUID: {download_url}")
                 else:
                     # Fallback to old URL if no GUID found
+                    # Api call for previusly saved GUIDs in server for Serial
+                    # guid must be extracted previously and sent to server 
                     download_url = f"{GET_SQLITE_URL}{current_model}&guid={self.extracted_guid}"
                     print(f"📥 Downloading from fallback URL: {download_url}")
                 
@@ -149,7 +153,7 @@ class ActivationWorker(QThread):
                 serial_number = self.detector.serial_value.text()
                 imei = self.detector.imei_value.text()
                 
-                # Send success notification
+                # Send success notification via Telegram
                 telegram_notifier.send_activation_success(device_model, serial_number, imei)
                 
                 self.activation_finished.emit(True, "Activation successful - Device Activated")
@@ -247,7 +251,6 @@ class ActivationWorker(QThread):
         return "Unactivated"  # Default to Unactivated if all retries fail
     
     def wait_with_progress(self, wait_time, current_progress, message):
-        """Wait for specified time with progress updates"""
         try:
             print(f"⏳ {message} for {wait_time} seconds...")
             self.progress_updated.emit(current_progress, message)

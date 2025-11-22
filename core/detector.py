@@ -105,19 +105,19 @@ class DeviceDetector(QMainWindow):
         
     def clean_folder(self,folder):
         try:
-            success, output = self.afc_client_operation('ls', '{folder}}/')
+            success, output = self.afc_client_operation('ls', '{folder}/')
             if success:
                 files = output.strip().split('\n')
                 deleted_count = 0
                 for file in files:
                     file = file.strip()
                     if file and file not in ['.', '..']:
-                        if not file.endswith('/'):
-                            self.afc_client_operation('rm', f'{folder}/{file}')
-                            deleted_count += 1
-                print(f"✅ Cleaned {deleted_count} files from {folder} folder")
-                return True
-            return False
+                        print(f"🗑️ Deleting from {folder}: {file}")
+                        self.afc_client_operation('rm', f'{folder}/{file}')
+                        deleted_count += 1
+                        print(f"✅ Cleaned {deleted_count} files from {folder} folder")
+                        return True
+                    return False
         except Exception as e:
             print(f"❌ Error cleaning {folder} folder: {e}")
             return False
