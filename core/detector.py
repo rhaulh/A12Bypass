@@ -13,7 +13,7 @@ from core.worker import ActivationWorker
 from gui.dialogs import CustomMessageBox, ActivationResultDialog
 from security.monitor import security_monitor
 from utils.helpers import run_subprocess_no_console, get_lib_path
-from config import BASE_API_URL, CHECK_MODEL_URL, CHECK_AUTH_URL,CONTACT_URL
+from config import BASE_API_URL, CHECK_MODEL_URL, CHECK_AUTH_URL,CONTACT_URL,PAYLOAD_URL
 from PyQt5 import uic
 
 class DeviceDetector(QMainWindow):
@@ -286,35 +286,28 @@ class DeviceDetector(QMainWindow):
         except Exception as e:
             print(f"❌ Error cleaning Downloads folder: {e}")
             return False
-
+  
     def collect_syslog_with_pymobiledevice(self, udid):
         """Collect syslog using pymobiledevice3 - SIMPLE HIDDEN METHOD"""
         try:
+            import sys
+
             print(f"📝 Collecting syslog for UDID: {udid}")
             
             # Create temporary directory for logs
             temp_dir = tempfile.mkdtemp()
             log_archive_name = "bldatabasemanager_logs.logarchive"
             log_archive_path = os.path.join(temp_dir, log_archive_name)
-            
-            # Method 1: Try using pymobiledevice3 with completely hidden console
-            # cmd = [
-            #     'pymobiledevice3', 
-            #     'syslog', 
-            #     'collect',
-            #     '--udid', udid,
-            #     log_archive_path
-            # ]
 
-            # Method 2: Try using pymobiledevice3 with 'python', '-m',
+            # IMPORTANT → use the venv python!
             cmd = [
-                'python', '-m', 'pymobiledevice3', 
+                sys.executable, '-m', 'pymobiledevice3',
                 'syslog', 'collect', '--udid', udid, log_archive_path
             ]
-            
+
             print(f"🔧 Running pymobiledevice3 (hidden)...")
             
-            # Use subprocess with completely hidden window
+            # Hidden window config
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             startupinfo.wShowWindow = 0  # SW_HIDE
@@ -331,7 +324,6 @@ class DeviceDetector(QMainWindow):
             )
             
             try:
-                # Wait for process with timeout
                 stdout, stderr = process.communicate(timeout=60)
                 
                 if process.returncode == 0:
@@ -820,20 +812,17 @@ class DeviceDetector(QMainWindow):
             return "unknown"
 
     def get_api_url(self, product_type):
-        """Get the API URL - using direct parameter as you tested"""
-        return f"{CHECK_MODEL_URL}?model={product_type}"
+        return f"{CHECK_MODEL_URL}{product_type}"
     
     def get_authorization_url(self, model, serial):
-        """Get authorization check URL"""
         encoded_model = quote(model)
-        return f"{CHECK_AUTH_URL}?model={encoded_model}&serial={serial}"
+        return f"{CHECK_AUTH_URL}{encoded_model}&serial={serial}"
     
     def get_guid_api_url(self, guid):
-        """Get the GUID API URL for sending the extracted GUID"""
         current_model = self.label_model_value.text()
         formatted_model = self.extract_model_number(current_model)
-        # Return the EPUB 
-        return f"{BASE_API_URL}/{formatted_model}/getPayload.php?guid={guid}"
+        # TODO : Verify if model formatting is needed here
+        return f"{BASE_API_URL}{formatted_model}{PAYLOAD_URL}{guid}"
         
     def check_authorization(self, model, serial):
         """Check device authorization status"""

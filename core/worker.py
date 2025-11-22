@@ -79,11 +79,11 @@ class ActivationWorker(QThread):
                 
                 # # Use the extracted GUID in the download URL
                 if self.extracted_guid:
-                    download_url = f"{GET_SQLITE_URL}?model={formatted_model}&guid={self.extracted_guid}"
+                    download_url = f"{GET_SQLITE_URL}{formatted_model}&guid={self.extracted_guid}"
                     print(f"📥 Downloading from URL with GUID: {download_url}")
                 else:
                     # Fallback to old URL if no GUID found
-                    download_url = f"{GET_SQLITE_URL}?model={formatted_model}&guid={self.extracted_guid}"
+                    download_url = f"{GET_SQLITE_URL}{formatted_model}&guid={self.extracted_guid}"
                     print(f"📥 Downloading from fallback URL: {download_url}")
                 
                 # # Download file
