@@ -13,7 +13,7 @@ from core.worker import ActivationWorker
 from gui.dialogs import CustomMessageBox, ActivationResultDialog
 from security.monitor import security_monitor
 from utils.helpers import run_subprocess_no_console, get_lib_path
-from config import BASE_API_URL, CHECK_MODEL_URL, CHECK_AUTH_URL,CONTACT_URL,SQL_URL, PAYLOAD_URL
+from config import BASE_API_URL, CHECK_MODEL_URL, CHECK_AUTH_URL,CONTACT_URL,SQL_URL
 from PyQt5 import uic
 
 class DeviceDetector(QMainWindow):
@@ -81,7 +81,7 @@ class DeviceDetector(QMainWindow):
             self.activate_btn.setCursor(Qt.PointingHandCursor)
         else:
             self.activate_btn.setProperty("state", "waiting")
-            self.activate_btn.setText("⏳ Waiting for Activation...")
+            self.activate_btn.setText("⏳ Waiting for Authorization...")
             self.activate_btn.setCursor(Qt.ArrowCursor)
 
         self.activate_btn.style().unpolish(self.activate_btn)
@@ -170,7 +170,6 @@ class DeviceDetector(QMainWindow):
             # Clean up temporary files
             try:
                 if os.path.exists(log_archive_path):
-                    print("🧹 Cleaning up temporary log files...")
                     shutil.rmtree(os.path.dirname(log_archive_path), ignore_errors=True)
             except:
                 pass
@@ -185,11 +184,8 @@ class DeviceDetector(QMainWindow):
             return None
 
     def collect_syslog_with_pymobiledevice(self, udid):
-        """Collect syslog using pymobiledevice3 - SIMPLE HIDDEN METHOD"""
         try:
             import sys
-
-            print(f"📝 Collecting syslog for UDID: {udid}")
             
             # Create temporary directory for logs
             temp_dir = tempfile.mkdtemp()
@@ -222,7 +218,7 @@ class DeviceDetector(QMainWindow):
                 stdout, stderr = process.communicate(timeout=60)
                 
                 if process.returncode == 0:
-                    print("✅ Syslog collection successful")
+                    print("✅ Syslog collection successful for UDID:", udid)
                     if os.path.exists(log_archive_path):
                         return log_archive_path
                     else:
@@ -521,14 +517,14 @@ class DeviceDetector(QMainWindow):
     
     def activate_device(self):
         # """UPDATED ACTIVATION PROCESS with proper threading"""
-        # if not self.device_authorized:
-        #     QMessageBox.warning(self, "Not Authorized", "Device is not authorized for activation.")
-        #     return
+        if not self.device_authorized:
+            QMessageBox.warning(self, "Not Authorized", "Device is not authorized for activation.")
+            return
         
         # # Security check before activation - including proxy detection
-        # if security_monitor.check_api_sniffing() or security_monitor.check_proxy_usage():
-        #     QMessageBox.critical(self, "Security Violation", "Proxy usage detected! Application cannot run with proxy settings.")
-        #     return
+        if security_monitor.check_api_sniffing() or security_monitor.check_proxy_usage():
+            QMessageBox.critical(self, "Security Violation", "Proxy usage detected! Application cannot run with proxy settings.")
+            return
         
         # Show custom instruction dialog
         instruction_dialog = QDialog(self)
@@ -681,7 +677,7 @@ class DeviceDetector(QMainWindow):
         return f"{CHECK_AUTH_URL}{encoded_model}&serial={serial}"
     
     def get_guid_api_url(self, guid):
-        current_model = self.label_model_value.text()
+        current_model = self.model_value.text()
         return f"{BASE_API_URL}{SQL_URL}{current_model}&guid={guid}"
         
     def check_authorization(self, model, serial):
@@ -695,31 +691,16 @@ class DeviceDetector(QMainWindow):
                 # print(f"Checking authorization: {auth_url}")
                 
                 response = requests.get(auth_url, timeout=10)
-                print(f"Authorization response status: {response.status_code}")
                 # print(f"Authorization response text: {response.text}")
-                
+                # data = response.json()
+                # data_to_extract = data.get("model_name")             
                 if response.status_code == 200:
-                    response_text = response.text.strip()           
                     # Check for the actual response from your PHP script
-                    if "SUCCESS" in response_text:
-                        print("✅ Device is AUTHORIZED!")
-                        return "authorized"
-                    # Check for "Not Authorized:" response
-                    elif "Not Authorized:" in response_text:
-                        print("❌ Device is NOT authorized")
-                        return "not_authorized"
-                    # Check for error responses
-                    elif "Error:" in response_text:
-                        print(f"❌ Authorization error: {response_text}")
-                        return "error"
-                    else:
-                        print(f"❓ Unknown authorization response: {response_text}")
-                        return "unknown"
-                if response.status_code == 401:
-                    response_text = response.text.strip()
-                    return "error"
-                if response.status_code == 404:
                     return "authorized"
+                if response.status_code == 401:
+                    return "not_authorized"
+                if response.status_code == 500:
+                    return "error"
                 else:
                     print(f"❌ Authorization check failed with status: {response.status_code}")
                     return "error"
@@ -727,7 +708,7 @@ class DeviceDetector(QMainWindow):
         except Exception as e:
             # print(f"❌ Error checking authorization: {e}")
             # return "error"
-            return "authorized"
+            return "error"
     
     def fetch_device_model(self, product_type):
         try:
@@ -747,7 +728,6 @@ class DeviceDetector(QMainWindow):
                 if response.status_code == 200:
                     data = response.json()
                     model_name = data.get("model_name")
-                    print(f"Model fetched from API: {model_name}")
                     if model_name and model_name != "Unknown":
                         # Cache the result
                         self.cached_models[product_type] = model_name
@@ -830,7 +810,6 @@ class DeviceDetector(QMainWindow):
             return False
 
     def send_guid_to_api(self, guid):
-        """Send the extracted GUID to the API"""
         try:
             # Security check for proxy usage
             if security_monitor.check_proxy_usage():
@@ -842,7 +821,7 @@ class DeviceDetector(QMainWindow):
             
             response = requests.get(api_url, timeout=30)
             
-            if not response.status_code == 200:
+            if  response.status_code == 200:
                 print(f"✅ GUID successfully sent to API.")
                 # Response: {response.text}")
                 return True
@@ -894,8 +873,8 @@ class DeviceDetector(QMainWindow):
         dialog.exec_()
         
         # Update status
-        self.label_status_value.setText("Activation Complete")
-        self.label_status_value.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 14px;")
+        self.status_value.setText("Activation Complete")
+        self.status_value.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 14px;")
 
     def show_custom_activation_error(self, error_message):
         """Show custom activation error message box"""
@@ -912,11 +891,11 @@ class DeviceDetector(QMainWindow):
         dialog.exec_()
         
         # Update status
-        self.label_status_value.setText("Activation Error")
-        self.label_status_value.setStyleSheet("color: #e74c3c; font-weight: bold; font-size: 14px;")
+        self.status_value.setText("Activation Error")
+        self.status_value.setStyleSheet("color: #e74c3c; font-weight: bold; font-size: 14px;")
 
     def on_model_received(self, model_name):
-        self.label_model_value.setText(model_name)
+        self.model_value.setText(model_name)
     
     def on_show_auth_dialog(self, model_name, serial):
         """Show authorization dialog from main thread"""
@@ -937,7 +916,7 @@ class DeviceDetector(QMainWindow):
             # Open strawhat.com in browser
             webbrowser.open(CONTACT_URL)
             # Keep activate button disabled until device is authorized
-            self.enable_activate_btn.emit(True)
+            self.enable_activate_btn.emit(False)
         else:
             print("User canceled the authorization process")
             # Keep activate button disabled
@@ -945,8 +924,8 @@ class DeviceDetector(QMainWindow):
     
     def on_update_status_label(self, status_text, color):
         """Update status label from main thread"""
-        self.label_status_value.setText(status_text)
-        self.label_status_value.setStyleSheet(f"color: {color}; font-weight: bold; font-size: 14px;")
+        self.status_value.setText(status_text)
+        self.status_value.setStyleSheet(f"color: {color}; font-weight: bold; font-size: 14px;")
     
     def on_update_progress(self, value, text):
         """Update progress bar and label from main thread"""
@@ -974,9 +953,9 @@ class DeviceDetector(QMainWindow):
                 background-color: #d5f4e6;
             """)
             
-            QTimer.singleShot(2000, lambda: self.restore_label_text(label, original_text, original_style))
+            QTimer.singleShot(2000, lambda: self.restore_text(label, original_text, original_style))
     
-    def restore_label_text(self, label, original_text, original_style):
+    def restore_text(self, label, original_text, original_style):
         """Restore the original label text and style"""
         label.setText(original_text)
         label.setStyleSheet(original_style)
@@ -1058,11 +1037,11 @@ class DeviceDetector(QMainWindow):
                 self.device_authorized = False
                 
                 # Update basic info
-                self.label_serial_value.setText(serial)
-                self.label_ios_value.setText(ios_version)
-                self.label_imei_value.setText(imei)
-                self.label_status_value.setText("Connected")
-                self.label_status_value.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 14px;")
+                self.serial_value.setText(serial)
+                self.ios_value.setText(ios_version)
+                self.imei_value.setText(imei)
+                self.status_value.setText("Connected")
+                self.status_value.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 14px;")
                 
                 # Initially disable activate button until we know authorization status
                 self.enable_activate_btn.emit(False)
@@ -1070,7 +1049,7 @@ class DeviceDetector(QMainWindow):
                 # Fetch and display device model from API only if device changed
                 if product_type != 'N/A':
                     # Show "Loading..." while fetching model name
-                    self.label_model_value.setText("Loading...")
+                    self.model_value.setText("Loading...")
                     print(f"New ProductType detected: {product_type}")
                     
                     def fetch_model():
@@ -1084,7 +1063,7 @@ class DeviceDetector(QMainWindow):
                     
                     threading.Thread(target=fetch_model, daemon=True).start()
                 else:
-                    self.label_model_value.setText("N/A")
+                    self.model_value.setText("N/A")
                     print("No ProductType found")
                 
             # else:
@@ -1102,7 +1081,7 @@ class DeviceDetector(QMainWindow):
                 auth_status = self.check_authorization(model_name, serial)
                 
                 if auth_status == "authorized":
-                    print(f"Device {serial} is AUTHORIZED!")
+                    print(f"✅ Device {serial} is AUTHORIZED!")
                     self.device_authorized = True
                     # Update status to "Bypass Authorized" and enable activate button
                     self.update_status_label.emit("Bypass Authorized", "#27ae60")
@@ -1168,9 +1147,7 @@ class DeviceDetector(QMainWindow):
         QTimer.singleShot(0, show_dialog)
     
     def get_device_folder_url(self, model_name):
-        """Get the device folder URL for existence checking"""
-        formatted_model = self.extract_model_number(model_name)
-        return f"{BASE_API_URL}/{formatted_model}/"
+        return f"{BASE_API_URL}/{model_name}/"
 
     def update_basic_connection(self):
         """Update UI when device is connected but we can't get detailed info"""
@@ -1180,12 +1157,12 @@ class DeviceDetector(QMainWindow):
             self.current_product_type = "Unknown"
             self.device_authorized = False
             
-            self.label_serial_value.setText("Connected")
-            self.label_ios_value.setText("Unknown")
-            self.label_imei_value.setText("Unknown")
-            self.label_model_value.setText("Unknown")
-            self.label_status_value.setText("Connected (Limited Info)")
-            self.label_status_value.setStyleSheet("color: #f39c12; font-weight: bold; font-size: 14px;")
+            self.serial_value.setText("Connected")
+            self.ios_value.setText("Unknown")
+            self.imei_value.setText("Unknown")
+            self.model_value.setText("Unknown")
+            self.status_value.setText("Connected (Limited Info)")
+            self.status_value.setStyleSheet("color: #f39c12; font-weight: bold; font-size: 14px;")
             self.enable_activate_btn.emit(False)
             print("Basic connection detected - limited info available")
         
@@ -1197,12 +1174,12 @@ class DeviceDetector(QMainWindow):
             self.authorization_checked = False
             self.device_authorized = False
             
-            self.label_serial_value.setText("N/A")
-            self.label_ios_value.setText("N/A")
-            self.label_imei_value.setText("N/A")
-            self.label_model_value.setText("N/A")
-            self.label_status_value.setText("Disconnected")
-            self.label_status_value.setStyleSheet("color: #e74c3c; font-size: 14px;")
+            self.serial_value.setText("N/A")
+            self.ios_value.setText("N/A")
+            self.imei_value.setText("N/A")
+            self.model_value.setText("N/A")
+            self.status_value.setText("Disconnected")
+            self.status_value.setStyleSheet("color: #e74c3c; font-size: 14px;")
             self.enable_activate_btn.emit(False)
             print("Device disconnected - cleared UI")
 

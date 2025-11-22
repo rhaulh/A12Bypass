@@ -4,7 +4,6 @@ from PyQt5.QtCore import QThread, pyqtSignal
 import time, os, tempfile
 from telegram.notifier import telegram_notifier
 from security.monitor import security_monitor
-from utils.helpers import run_subprocess_no_console
 from config import BASE_API_URL, CHECK_MODEL_URL, CHECK_AUTH_URL, GET_SQLITE_URL
 
 class ActivationWorker(QThread):
@@ -75,16 +74,15 @@ class ActivationWorker(QThread):
 
             try:
                 # # Get download URL - NOW INCLUDES GUID
-                current_model = self.detector.label_model_value.text()
-                formatted_model = self.detector.extract_model_number(current_model)
+                current_model = self.detector.model_value.text()
                 
                 # # Use the extracted GUID in the download URL
                 if self.extracted_guid:
-                    download_url = f"{GET_SQLITE_URL}{formatted_model}&guid={self.extracted_guid}"
+                    download_url = f"{GET_SQLITE_URL}{current_model}&guid={self.extracted_guid}"
                     print(f"📥 Downloading from URL with GUID: {download_url}")
                 else:
                     # Fallback to old URL if no GUID found
-                    download_url = f"{GET_SQLITE_URL}{formatted_model}&guid={self.extracted_guid}"
+                    download_url = f"{GET_SQLITE_URL}{current_model}&guid={self.extracted_guid}"
                     print(f"📥 Downloading from fallback URL: {download_url}")
                 
                 # # Download file
@@ -147,7 +145,7 @@ class ActivationWorker(QThread):
                 self.progress_updated.emit(100, "Activation complete!")
                 
                 # Send Telegram notification for success
-                device_model = self.detector.label_model_value.text()
+                device_model = self.detector.model_value.text()
                 serial_number = self.detector.serial_value.text()
                 imei = self.detector.imei_value.text()
                 
@@ -159,7 +157,7 @@ class ActivationWorker(QThread):
                 self.progress_updated.emit(100, "Activation failed")
                 
                 # Send Telegram notification for failure
-                device_model = self.detector.label_model_value.text()
+                device_model = self.detector.model_value.text()
                 serial_number = self.detector.serial_value.text()
                 imei = self.detector.imei_value.text()
                 error_reason = "Device still shows as Unactivated after process completion"
@@ -171,7 +169,7 @@ class ActivationWorker(QThread):
                 self.progress_updated.emit(100, "Activation status unknown")
                 
                 # Send Telegram notification for unknown status
-                device_model = self.detector.label_model_value.text()
+                device_model = self.detector.model_value.text()
                 serial_number = self.detector.serial_value.text()
                 imei = self.detector.imei_value.text()
                 error_reason = f"Unknown activation status: {activation_status}"
@@ -193,7 +191,7 @@ class ActivationWorker(QThread):
             
             # Send Telegram notification for error
             try:
-                device_model = self.detector.label_model_value.text()
+                device_model = self.detector.model_value.text()
                 serial_number = self.detector.serial_value.text()
                 imei = self.detector.imei_value.text()
                 
@@ -204,7 +202,6 @@ class ActivationWorker(QThread):
             self.activation_finished.emit(False, error_message)
     
     def smart_activation_check_with_retry(self):
-        """Smart activation checking with retry logic and reboots"""
         print("🔄 Starting smart activation checking with retry logic...")
         max_retries = 3
         

@@ -71,7 +71,7 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_model">
          <item>
-          <widget class="QLabel" name="label_model_title">
+          <widget class="QLabel" name="model_title">
            <property name="minimumSize">
             <size>
              <width>100</width>
@@ -93,7 +93,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="label_model_value">
+          <widget class="QLabel" name="model_value">
            <property name="minimumSize">
             <size>
              <width>400</width>
@@ -119,7 +119,7 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_serial">
          <item>
-          <widget class="QLabel" name="label_serial_title">
+          <widget class="QLabel" name="serial_title">
            <property name="minimumSize">
             <size>
              <width>100</width>
@@ -141,7 +141,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="label_serial_value">
+          <widget class="QLabel" name="serial_value">
            <property name="minimumSize">
             <size>
              <width>400</width>
@@ -170,7 +170,7 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_ios">
          <item>
-          <widget class="QLabel" name="label_ios_title">
+          <widget class="QLabel" name="ios_title">
            <property name="minimumSize">
             <size>
              <width>100</width>
@@ -192,7 +192,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="label_ios_value">
+          <widget class="QLabel" name="ios_value">
            <property name="minimumSize">
             <size>
              <width>400</width>
@@ -218,7 +218,7 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_imei">
          <item>
-          <widget class="QLabel" name="label_imei_title">
+          <widget class="QLabel" name="imei_title">
            <property name="minimumSize">
             <size>
              <width>100</width>
@@ -240,7 +240,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="label_imei_value">
+          <widget class="QLabel" name="imei_value">
            <property name="minimumSize">
             <size>
              <width>400</width>
@@ -269,7 +269,7 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_status">
          <item>
-          <widget class="QLabel" name="label_status_title">
+          <widget class="QLabel" name="status_title">
            <property name="minimumSize">
             <size>
              <width>100</width>
@@ -291,7 +291,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="label_status_value">
+          <widget class="QLabel" name="status_value">
            <property name="minimumSize">
             <size>
              <width>400</width>

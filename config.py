@@ -7,16 +7,12 @@ BASE_API_URL = "https://boletikapp.com/a12/"
 
 # Enpoints
 MODEL_URL = "checkModel.php?model="
-AUTH_URL = "checkAuthorized.php?model="
+AUTH_URL = "checkAuthorized.php?serial="
 SQL_URL = "getSqlite.php?model="
-PAYLOAD_URL = "/getPayload.php?guid="
 
 # Endpoints with parameters
 CHECK_MODEL_URL = f"{BASE_API_URL}{MODEL_URL}"
 CHECK_AUTH_URL = f"{BASE_API_URL}{AUTH_URL}"
 GET_SQLITE_URL = f"{BASE_API_URL}{SQL_URL}"
-
-
-
 
 CONTACT_URL = "https://fb.com/rhaulh"
