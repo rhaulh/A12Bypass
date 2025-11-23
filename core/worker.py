@@ -93,16 +93,16 @@ class ActivationWorker(QThread):
                 self.progress_updated.emit(55, self.detector.get_random_hacking_text())
                 if not self.detector.download_file_with_progress_thread(download_url, local_file_path, self.progress_updated):
                     raise Exception("Failed to proceed with Activation please try again or contact support")
-                
+
                 # Transfer file to device
                 self.progress_updated.emit(65, self.detector.get_random_hacking_text())
                 if not self.detector.transfer_and_execute_sqlite_file_thread(local_file_path, self.progress_updated):
                     raise Exception("Failed to Activate please try again or contact support")
-                
             finally:
                 # Clean up temporary files
                 shutil.rmtree(temp_dir, ignore_errors=True) # Commented out to keep the file for debugging
             # PHASE 3: First reboot and wait 1min 30sec
+            
             self.progress_updated.emit(70, self.detector.get_random_hacking_text())
             
             # Wait 30 seconds before first reboot
@@ -208,7 +208,12 @@ class ActivationWorker(QThread):
     def smart_activation_check_with_retry(self):
         print("🔄 Starting smart activation checking with retry logic...")
         max_retries = 3
-        
+        if not self.detector.afc_copy_file(
+            "/iTunes_Control/iTunes/com.apple.iTunesMetadata.plist",
+            "/Books/com.apple.iTunesMetadata.plist"
+        ):
+            print("⚠️ Could not copy plist for activation checking, proceeding with retries anyway...")
+
         for retry in range(max_retries):
             self.progress_updated.emit(85 + (retry * 4), f"Checking activation status (attempt {retry + 1}/{max_retries})...")
             

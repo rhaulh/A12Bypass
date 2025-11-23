@@ -6,7 +6,6 @@ import threading
 import ctypes
 import winreg
 import requests
-import hashlib
 from config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
 DETECTED_THREATS = []

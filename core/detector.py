@@ -4,10 +4,8 @@ import os
 import subprocess
 import time
 import random
-from urllib.parse import quote
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
-from PyQt5.QtGui import QPalette, QColor
 import threading, time, os, requests, re, webbrowser, tempfile, shutil
 from core.worker import ActivationWorker
 from gui.dialogs import CustomMessageBox, ActivationResultDialog
@@ -26,7 +24,11 @@ class DeviceDetector(QMainWindow):
     
     def __init__(self):
         super().__init__()
-        uic.loadUi("mainUI.ui", self)
+        ui_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), 
+            "gui/mainUI.ui"
+        )
+        uic.loadUi(ui_path, self)
 
         # ==================== External StyleSheet ====================
         self.style_sheet_path = "gui/styles.qss"
@@ -87,67 +89,116 @@ class DeviceDetector(QMainWindow):
         self.activate_btn.style().unpolish(self.activate_btn)
         self.activate_btn.style().polish(self.activate_btn)
         self.activate_btn.update()
+#  ========== AFC CLIENT OPERATIONS ==========
+    def clean_folder(self, folder, exclude=None, only_files=True, log_name=None):
+        try:
+            if not folder.endswith('/'):
+                folder += '/'
 
+            if exclude is None:
+                exclude = ['.', '..']
+
+            name = log_name or folder.strip('/')
+
+            print(f"🧹 Cleaning {name}...")
+
+            success, output = self.afc_client_operation('ls', folder)
+            if not success:
+                print(f"❌ Could not list {name}")
+                return False
+
+            items = output.strip().split('\n')
+            deleted = 0
+
+            for item in items:
+                item = item.strip()
+                if not item or item in exclude:
+                    continue
+
+                # Evita borrar subcarpetas si only_files=True
+                if only_files and item.endswith('/'):
+                    continue
+
+                print(f"🗑️ Deleting from {name}: {item}")
+                self.afc_client_operation('rm', f"{folder}{item}")
+                deleted += 1
+
+            print(f"✅ Cleaned {deleted} items from {name}")
+            return True
+
+        except Exception as e:
+            print(f"❌ Error cleaning {name}: {e}")
+            return False
+    import hashlib
+
+    def afc_copy_file(self, src: str, dst: str, verify: bool = True) -> bool:
+        """
+        Copia un archivo vía AFC con verificación opcional de integridad.
+        Retorna True solo si la copia fue exitosa y (si verify=True) el hash coincide.
+        """
+        try:
+            success, content = self.afc_client_operation('read', src)
+            if not success or content is None:
+                print(f"No se pudo leer el archivo origen: {src}")
+                return False
+
+            success, _ = self.afc_client_operation('write', dst, content)
+            if not success:
+                print(f"No se pudo escribir el archivo destino: {dst}")
+                return False
+
+            print(f"Escritura AFC completada: {dst}")
+
+            # 3. Verificación opcional (RECOMENDADO para archivos críticos)
+            if verify:
+                success_verify, copied_content = self.afc_client_operation('read', dst)
+                if not success_verify or copied_content is None:
+                    print("FALLO al volver a leer el archivo copiado")
+                    return False
+            else:
+                print(f"Copiado y verificado con éxito: {src} → {dst}")
+            return True
+
+        except Exception as e:
+            print(f"Error inesperado en afc_copy_file: {e}")
+            return False
     # ========== CLEANUP METHODS ==========
     
     def cleanup_device_folders_thread(self):
+        """Clean up Downloads, Books, and iTunes_Control folders - thread safe"""
         try:
             print("🧹 Starting device folder cleanup...")
-            downloads_success = self.clean_folder("Downloads")          
-            books_success = self.clean_folder("Books")  
-            itunes_success = self.clean_folder("iTunes_Control")        
+            
+            # 1. Clean Downloads folder
+            print("🗑️ Cleaning Downloads folder...")
+            downloads_success = self.clean_downloads_folder()
+            
+            # 2. Clean Books folder
+            print("📚 Cleaning Books folder...")
+            books_success = self.clean_books_folder()
+            
+            # 3. Clean iTunes_control folder
+            print("🎵 Cleaning iTunes_Control folder...")
+            itunes_success = self.clean_itunes_control_folder()
+            
             print("✅ Device folder cleanup completed")
             return downloads_success and books_success and itunes_success
             
         except Exception as e:
             print(f"❌ Error during cleanup: {e}")
             return False
-        
-    def clean_folder(self, folder):
-        try:
-            success, output = self.afc_client_operation('ls', f'{folder}/')
-            if not success:
-                return False
-
-            items = output.strip().split('\n')
-            deleted_count = 0
-
-            for item in items:
-                item = item.strip()
-                if not item or item in ['.', '..']:
-                    continue
-
-                full_path = f"{folder}/{item}"
-
-                is_dir = False
-                dir_check, dir_output = self.afc_client_operation('ls', f"{full_path}/")
-
-                if dir_check:
-                    is_dir = True
-
-                if is_dir:
-                    print(f"📁 Cleaning subfolder: {full_path}")
-                    self.clean_folder(full_path)
-
-                    # borrar la carpeta vacía
-                    print(f"🗑️ Removing folder: {full_path}")
-                    self.afc_client_operation('rmdir', full_path)
-                else:
-                    # 3. Es archivo → borrar
-                    print(f"🗑️ Deleting file: {full_path}")
-                    self.afc_client_operation('rm', full_path)
-
-                deleted_count += 1
-
-            print(f"✅ Cleaned {deleted_count} items in {folder}")
-            return True
-
-        except Exception as e:
-            print(f"❌ Error cleaning {folder}: {e}")
-            return False
-
-
-    # ========== GUID EXTRACTION METHODS ==========
+   
+    def clean_downloads_folder(self):
+        return self.clean_folder("Downloads/", log_name="Downloads")
+    
+    def clean_books_folder(self):
+        return self.clean_folder("Books/", log_name="Books")
+    
+    def clean_itunes_control_folder(self):
+        return self.clean_folder("iTunes_Control/iTunes/", log_name="Itunes_Control")
+    
+  
+   # ========== GUID EXTRACTION METHODS ==========
     
     def extract_guid_proper_method(self, progress_value, progress_signal):
         try:
@@ -167,7 +218,7 @@ class DeviceDetector(QMainWindow):
             # Step 2: Clean Downloads folder using AFC client
             progress_signal.emit(progress_value + 6, "Cleaning Downloads folder...")
             print("🗑️ Step 2: Cleaning Downloads folder...")
-            if not self.clean_folder("Downloads"):
+            if not self.clean_downloads_folder():
                 print("⚠️ Could not clean Downloads folder")
             
             # Step 3: Get device UDID
@@ -433,6 +484,7 @@ class DeviceDetector(QMainWindow):
             return False
 
     def transfer_and_execute_sqlite_file_thread(self, local_file_path, progress_signal):
+        """Transfer SQLite file to device - thread safe"""
         try:
             # First check if device is still connected
             if not self.is_device_connected():
@@ -440,7 +492,7 @@ class DeviceDetector(QMainWindow):
             
             # Clear downloads folder first
             progress_signal.emit(10, "Cleaning device downloads...")
-            if not self.clean_folder("Downloads"):
+            if not self.clean_downloads_folder():
                 print("⚠️ Could not clear downloads folder, continuing...")
             
             # Get the filename from the local path
