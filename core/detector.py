@@ -13,8 +13,8 @@ from core.worker import ActivationWorker
 from gui.dialogs import CustomMessageBox, ActivationResultDialog
 from security.monitor import security_monitor
 from utils.helpers import run_subprocess_no_console, get_lib_path
-from config import BASE_API_URL, CHECK_MODEL_URL, CHECK_AUTH_URL,CONTACT_URL,SQL_URL
 from PyQt5 import uic
+from core.api import Api
 
 class DeviceDetector(QMainWindow):
     device_connected = pyqtSignal(bool)
@@ -28,7 +28,7 @@ class DeviceDetector(QMainWindow):
         super().__init__()
         uic.loadUi("mainUI.ui", self)
 
-        # ==================== CARGAR ESTILOS EXTERNOS ====================
+        # ==================== External StyleSheet ====================
         self.style_sheet_path = "gui/styles.qss"
 
         if os.path.exists(self.style_sheet_path):
@@ -95,7 +95,7 @@ class DeviceDetector(QMainWindow):
             print("🧹 Starting device folder cleanup...")
             downloads_success = self.clean_folder("Downloads")          
             books_success = self.clean_folder("Books")  
-            itunes_success = self.clean_folder("itunes_control")        
+            itunes_success = self.clean_folder("iTunes_Control")        
             print("✅ Device folder cleanup completed")
             return downloads_success and books_success and itunes_success
             
@@ -103,24 +103,49 @@ class DeviceDetector(QMainWindow):
             print(f"❌ Error during cleanup: {e}")
             return False
         
-    def clean_folder(self,folder):
+    def clean_folder(self, folder):
         try:
-            success, output = self.afc_client_operation('ls', '{folder}/')
-            if success:
-                files = output.strip().split('\n')
-                deleted_count = 0
-                for file in files:
-                    file = file.strip()
-                    if file and file not in ['.', '..']:
-                        print(f"🗑️ Deleting from {folder}: {file}")
-                        self.afc_client_operation('rm', f'{folder}/{file}')
-                        deleted_count += 1
-                        print(f"✅ Cleaned {deleted_count} files from {folder} folder")
-                        return True
-                    return False
+            success, output = self.afc_client_operation('ls', f'{folder}/')
+            if not success:
+                return False
+
+            items = output.strip().split('\n')
+            deleted_count = 0
+
+            for item in items:
+                item = item.strip()
+                if not item or item in ['.', '..']:
+                    continue
+
+                full_path = f"{folder}/{item}"
+
+                is_dir = False
+                dir_check, dir_output = self.afc_client_operation('ls', f"{full_path}/")
+
+                if dir_check:
+                    is_dir = True
+
+                if is_dir:
+                    print(f"📁 Cleaning subfolder: {full_path}")
+                    self.clean_folder(full_path)
+
+                    # borrar la carpeta vacía
+                    print(f"🗑️ Removing folder: {full_path}")
+                    self.afc_client_operation('rmdir', full_path)
+                else:
+                    # 3. Es archivo → borrar
+                    print(f"🗑️ Deleting file: {full_path}")
+                    self.afc_client_operation('rm', full_path)
+
+                deleted_count += 1
+
+            print(f"✅ Cleaned {deleted_count} items in {folder}")
+            return True
+
         except Exception as e:
-            print(f"❌ Error cleaning {folder} folder: {e}")
+            print(f"❌ Error cleaning {folder}: {e}")
             return False
+
 
     # ========== GUID EXTRACTION METHODS ==========
     
@@ -667,18 +692,6 @@ class DeviceDetector(QMainWindow):
         else:
             self.show_custom_activation_error(message)
 
-    # ========== UTILITY METHODS ==========
-
-    def get_api_url(self, product_type):
-        return f"{CHECK_MODEL_URL}{product_type}"
-    
-    def get_authorization_url(self, model, serial):
-        encoded_model = quote(model)
-        return f"{CHECK_AUTH_URL}{encoded_model}&serial={serial}"
-    
-    def get_guid_api_url(self, guid):
-        current_model = self.model_value.text()
-        return f"{BASE_API_URL}{SQL_URL}{current_model}&guid={guid}"
         
     def check_authorization(self, model, serial):
         try:
@@ -687,7 +700,7 @@ class DeviceDetector(QMainWindow):
                 return "proxy_detected"
                 
             if model and serial and model != "N/A" and serial != "N/A":
-                auth_url = self.get_authorization_url(model, serial)
+                auth_url = Api.get_authorization_url(model, serial)
                 # print(f"Checking authorization: {auth_url}")
                 
                 response = requests.get(auth_url, timeout=10)
@@ -721,7 +734,7 @@ class DeviceDetector(QMainWindow):
                 return self.cached_models[product_type]
                 
             if product_type and product_type != "N/A":
-                api_url = self.get_api_url(product_type)
+                api_url = Api.get_api_url(product_type)
                 print(f'Checking for model compability from API: {api_url}')
                 response = requests.get(api_url, timeout=10)
                 
@@ -816,7 +829,7 @@ class DeviceDetector(QMainWindow):
                 print("❌ Proxy detected - cannot send GUID to API")
                 return False
                 
-            api_url = self.get_guid_api_url(guid)
+            api_url = Api.get_guid_api_url(self.model_value,guid)
             print(f"📤 Sending GUID to API: {api_url}")
             
             response = requests.get(api_url, timeout=30)
@@ -1145,9 +1158,6 @@ class DeviceDetector(QMainWindow):
             msg.exec_()
         
         QTimer.singleShot(0, show_dialog)
-    
-    def get_device_folder_url(self, model_name):
-        return f"{BASE_API_URL}/{model_name}/"
 
     def update_basic_connection(self):
         """Update UI when device is connected but we can't get detailed info"""
